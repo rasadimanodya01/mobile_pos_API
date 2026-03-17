@@ -2,16 +2,15 @@ const Product = require('../models/Product');
 
 // @desc Get all products
 // @route GET /api/v1/products
-// @access private
+// @access Private
 const getProducts = async (req, res)=>{
     try{
         const products = await Product.find();
         res.status(200).json({
             success:true,
-            count:products.length,
-            data:products
+            count: products.length,
+            data: products
         });
-
     }catch(error){
         res.status(500).json({
             success:false,
@@ -19,24 +18,25 @@ const getProducts = async (req, res)=>{
         })
     }
 }
+
 // @desc Get single product
 // @route GET /api/v1/products/:id
-// @access private
+// @access Private
 const getProduct = async (req, res)=>{
     try{
         const product = await Product.findById(req.params.id);
 
-        if(!customer){
+        if(!product){
             return res.status(404).json({
                 success:false,
-                message:'product not found'
+                message:'Product not found'
             });
         }
+
         res.status(200).json({
             success:true,
-            data:customer
+            data: product
         });
-
     }catch(error){
         res.status(500).json({
             success:false,
@@ -44,59 +44,55 @@ const getProduct = async (req, res)=>{
         })
     }
 }
-// @desc create new product
+
+// @desc Create New product
 // @route POST /api/v1/products
-// @access private
+// @access Private
 const createProduct = async (req, res)=>{
     try{
         const product = await Product.create(req.body);
 
-            res.status(201).json({
+        res.status(201).json({
             success:true,
-            data:product
-        
+            data: product
         });
-        
-
     }catch(error){
-        res.status(500).json({
+        res.status(400).json({
             success:false,
             message:error.message
         })
     }
 }
-// @desc update product
-// @route POST /api/v1/products/:id
-// @access private
+
+
+// @desc Update product
+// @route PUT /api/v1/products/:id
+// @access Private
 const updateProduct = async (req, res)=>{
     try{
-        const product = await Product.findByIdAndUpdate(req.params.id,req.body,{new:true, runValidators:true});
+        const product = await Product.findByIdAndUpdate(req.params.id, req.body,{new:true, runValidators:true});
 
         if(!product){
             return res.status(404).json({
                 success:true,
-                message:'product not found'
-
+                message:'customer not found'
             });
         }
-
-            res.status(200).json({
+        res.status(200).json({
             success:true,
-            data:product
-        
+            data: product
         });
-        
-
     }catch(error){
-        res.status(500).json({
+        res.status(400).json({
             success:false,
             message:error.message
         })
     }
 }
-// @desc delete product
+
+// @desc Delete Customer
 // @route DELETE /api/v1/products/:id
-// @access private
+// @access Private
 const deleteProduct = async (req, res)=>{
     try{
         const product = await Product.findByIdAndDelete(req.params.id);
@@ -104,19 +100,14 @@ const deleteProduct = async (req, res)=>{
         if(!product){
             return res.status(404).json({
                 success:true,
-                message:'product not found'
-
+                message:'customer not found'
             });
         }
-
-            res.status(200).json({
+        res.status(200).json({
             success:true,
-            data:{},
+            data: {},
             message:'product deleted successfully'
-        
         });
-        
-
     }catch(error){
         res.status(500).json({
             success:false,

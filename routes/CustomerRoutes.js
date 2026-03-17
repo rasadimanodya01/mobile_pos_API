@@ -1,11 +1,12 @@
 const express = require('express');
 const router = express.Router();
-const {getCustomers,
+const {
+    getCustomers,
     getCustomer,
     createCustomer,
     deleteCustomer,
     updateCustomer
-}=require('../controllers/CustomerController');
+}= require('../controllers/CustomerController');
 const {protect} = require('../middleware/auth');
 
 router.route('/')
@@ -18,5 +19,3 @@ router.route('/:id')
 .delete(protect, deleteCustomer);
 
 module.exports = router;
-
-

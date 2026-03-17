@@ -1,20 +1,19 @@
 const Order = require('../models/Order');
-const Order = require('../models/Product');
+const Product = require('../models/Product');
 
 // @desc Get all orders
 // @route GET /api/v1/orders
-// @access private
+// @access Private
 
-const getOrders = async (req,res)=>{
+const getOrders = async (req, res)=>{
     try{
-        const orders = await Order.find().populate('customer','name address').populate('productDetaile.product','description unitPrice');
+        const orders = await Order.find().populate('customer','name address').populate('productDetails.product','description unitPrice');
 
         res.status(200).json({
-            success:true,
-            count:orders.length,
-            data:orders
+            sucecss:true,
+            count: orders.length,
+            data: orders
         });
-              
     }catch(error){
         res.status(500).json({
             success:false,
@@ -22,26 +21,25 @@ const getOrders = async (req,res)=>{
         })
     }
 }
+
 // @desc Get single order
 // @route GET /api/v1/orders/:id
-// @access private
+// @access Private
 
-const getOrder = async (req,res)=>{
+const getOrder = async (req, res)=>{
     try{
-        const order = await Order.findById(req.params.id).populate('customer','name address').populate('productDetaile.product','description unitPrice');
+        const order = await Order.findById(req.params.id).populate('customer','name address').populate('productDetails.product','description unitPrice');
 
         if(!order){
             return res.status(404).json({
-                success:false,
-                message:'order not found'
-            });
-        }
-
-        res.status(200).json({
-            success:true,
-            data:order
+            sucecss:false,
+            message:'Order Not Found'
         });
-              
+        }
+        res.status(200).json({
+            sucecss:true,
+            data: order
+        });
     }catch(error){
         res.status(500).json({
             success:false,
@@ -49,41 +47,44 @@ const getOrder = async (req,res)=>{
         })
     }
 }
-// @desc create order
-// @route POST /api/v1/order
-// @access private
 
-const createOrder = async (req,res)=>{
+// @desc create Order
+// @route POST /api/v1/orders
+// @access Private
+
+const createOrder = async (req, res)=>{
     try{
-        const{customer, productDetails}=req.body;
+
+        const {customer, productDetails}=req.body;
 
         let totalAmount =0;
 
-        for (let item of productDetails){
-            const product = await product.findById(item.product);
+        for(let item of productDetails){
+            const product = await Product.findById(item.product);
 
             if(!product){
-               return res.status(404).json({
-                success:false,
-                message:'Product with id ${item.product} not found'
-                }); 
+                return res.status(404).json({
+                        sucecss:false,
+                        message:`Product with id ${item.product} not found`
+                    });
             }
-        
+
             if(product.qtyOnHand<item.quantity){
                 return res.status(400).json({
-                success:false,
-                message:'insufficiant quantity for product ${product.description}'
-            });
+                        sucecss:false,
+                        message:`insufficiant quantity for product ${product.description}`
+                    });
             }
+
             item.price=product.unitPrice;
             totalAmount+=product.unitPrice*item.quantity;
 
-            //update product quantity
+
+            // update product quantity
             product.qtyOnHand-=item.quantity;
             await product.save();
-        
         }
-        
+
         const order = await Order.create({
             customer,
             productDetails,
@@ -92,18 +93,14 @@ const createOrder = async (req,res)=>{
         });
 
         const populatedOrder = await Order.findById(order._id)
-        .populate('customer','name address')
-        .populate('productDetails.product','description unitPrice')
+        .populate('customer', 'name address')
+        .populate('productDetails.product', 'description unitPrice');
 
         res.status(201).json({
-            success:true,
+            sucecss:true,
             data:populatedOrder
         });
-
-        
-
-        
-              
+       
     }catch(error){
         res.status(400).json({
             success:false,
@@ -111,68 +108,70 @@ const createOrder = async (req,res)=>{
         })
     }
 }
-// @desc update order
-// @route PUT /api/v1/order/:id
-// @access private
 
-const updateOrder = async (req,res)=>{
+// @desc Update Order
+// @route PUT /api/v1/orders/:id
+// @access Private
+
+const updateOrder = async (req, res)=>{
     try{
 
         let order = await Order.findById(req.params.id);
-        if (!order){
+
+        if(!order){
             res.status(404).json({
-                success:false,
-                message:'order not found'
+            sucecss:false,
+            message:'Order not found'
             });
         }
 
-        //if updating product details, recalculate stock and total
+        // if updating product details, recalculate stock and total
         if(req.body.productDetails){
             for(let item of order.productDetails){
                 const product = await Product.findById(item.product);
                 product.qtyOnHand+=item.quantity;
                 await product.save();
             }
+
             let totalAmount =0;
             for(let item of req.body.productDetails){
                 const product = await Product.findById(item.product);
 
                 if(!product){
-                return res.status(404).json({
-                success:false,
-                message:'Product with id ${item.product} not found'
-                }); 
-            }
-            if(product.qtyOnHand<item.quantity){
-                return res.status(400).json({
-                success:false,
-                message:'insufficiant quantity for product ${product.description}'
-            });
-            }
-            item.price=product.unitPrice;
-            totalAmount+=product.unitPrice*item.quantity;
+                    return res.status(404).json({
+                        sucecss:false,
+                        message:`Product with id ${item.product} not found`
+                    });
+                }
 
-            //update product quantity
-            product.qtyOnHand-=item.quantity;
-            await product.save();
-        
+                if(product.qtyOnHand<item.quantity){
+                return res.status(400).json({
+                        sucecss:false,
+                        message:`insufficiant quantity for product ${product.description}`
+                    });
+                }
+
+                item.price=product.unitPrice;
+                totalAmount+=product.unitPrice*item.quantity;
+
+                   // update product quantity
+                    product.qtyOnHand-=item.quantity;
+                    await product.save();
+            }
+
+            req.body.totalAmount = totalAmount;
 
         }
 
-        req.body.totalAmount = totalAmount;
+         order  = await Order.findByIdAndUpdate(req.params.id, req.body,{new:true, runValidators:true})
+        .populate('customer', 'name address')
+        .populate('productDetails.product', 'description unitPrice');
 
-    }
-         order = await Order.findByIdAndUpdate(req.params.id,req.body,{new:true,runValidators:true})
-        .populate('customer','name address')
-        .populate('productDetails.product','description unitPrice')
-
-        res.status(201).json({
-            success:true,
-            message:order
+        res.status(200).json({
+            sucecss:true,
+            data:order
         });
 
-        
-              
     }catch(error){
         res.status(400).json({
             success:false,
@@ -180,51 +179,51 @@ const updateOrder = async (req,res)=>{
         })
     }
 }
-// @desc delete order
-// @route DELET /api/v1/order/:id
-// @access private
 
-const deleteOrder = async (req,res)=>{
+// @desc Delete Order
+// @route DELETE /api/v1/orders/:id
+// @access Private
+
+const deleteOrder = async (req, res)=>{
     try{
 
         let order = await Order.findById(req.params.id);
-        if (!order){
+
+        if(!order){
             res.status(404).json({
-                success:false,
-                message:'order not found'
+            sucecss:false,
+            message:'Order not found'
             });
         }
 
-        //restore product quantities
-        
-            for(let item of order.productDetails){
+        // Restore Product quantities
+
+        for(let item of order.productDetails){
                 const product = await Product.findById(item.product);
+
                 if(product){
                     product.qtyOnHand += item.quantity;
                     await product.save();
                 }
-                
             }
 
             await Order.findByIdAndDelete(req.params.id);
-            
-        res.status(200).json({
-            success:true,
-            data:{},
-            message:'order deleted'
-        });
 
+        res.status(200).json({
+            sucecss:true,
+            data:{},
+            message:'Order Deleted'
+        });
         
-              
     }catch(error){
-        res.status(400).json({
+        res.status(500).json({
             success:false,
             error:error.message
         })
     }
 }
 
-module.export={
+module.exports={
     getOrders,
     getOrder,
     createOrder,

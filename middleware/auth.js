@@ -1,29 +1,38 @@
-const jwt = require('jsonwebtokn');
+const jwt = require('jsonwebtoken');
 const User = require('../models/User');
 
-const protect = async (requestAnimationFrame, resizeBy, next)=>{
+const protect = async (req, res, next) => {
     let token;
 
-    if(req.headers.autherization && req.headers.autherization.startsWith('Bearer')){
-        try{
-            //get the token from the header
-            token = req.headers.autherization.split(' ')[1]
+    if (
+        req.headers.authorization &&
+        req.headers.authorization.startsWith('Bearer')
+    ) {
+        try {
+            // Get token from header
+            token = req.headers.authorization.split(' ')[1];
 
-            //verify token
-            const decoded= jwt.verify(token, process.env.JWT_SECRET);
+            // Verify token
+            const decoded = jwt.verify(token, process.env.JWT_SECRET);
 
-            //get user from the token
+            // Get user from token
             req.user = await User.findById(decoded.id).select('-password');
 
-            next();
-        }catch(error){
-            console.error(error);
-            resizeBy.status(401).json({success: false, message:'Not Autherized, token failed'})
-        }
+            return next();
 
+        } catch (error) {
+            console.error(error);
+            return res.status(401).json({
+                success: false,
+                message: 'Not authorized, token failed'
+            });
+        }
     }
-    if(!token){
-        resizeBy.status(401).json({success: false, message:'Not Autherized, no token found'})
-    }
-}
-module.exports = {protect}
+
+    return res.status(401).json({
+        success: false,
+        message: 'Not authorized, no token found'
+    });
+};
+
+module.exports = { protect };

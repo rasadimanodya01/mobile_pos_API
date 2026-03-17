@@ -1,48 +1,51 @@
+require('events').defaultMaxListeners = 20; // ✅ Prevent MaxListeners warning
+
 const express = require('express');
 const dotenv = require('dotenv');
 const cors = require('cors');
 const connectDB = require('./config/db');
 
-//load env variables
+// Load environment variables
 dotenv.config();
 
-//connect to database
+// Connect to database
 connectDB();
 
 const app = express();
 
-//body parser middleware
-app.use(express.json())
-app.use(express.urlencoded({extened:true}));
+// Body parser middleware
+app.use(express.json());
+app.use(express.urlencoded({ extended: true }));
 
-//enable cors
+// Enable CORS
 app.use(cors());
 
-//routes
+// Routes
 app.use('/api/v1/auth', require('./routes/authRoutes'));
+app.use('/api/v1/customers', require('./routes/CustomerRoutes'));
+app.use('/api/v1/orders', require('./routes/OrderRoutes'));
+app.use('/api/v1/products', require('./routes/ProductRoutes'));
 
-//root route
-app.get('/',(req, res)=>{
-
+// Root route
+app.get('/', (req, res) => {
     res.json({
-        message:'Express MongoDb MVC API',
-        version:'1.0.0'
-
-    })
+        message: 'Express MongoDB MVC API',
+        version: '1.0.0'
+    });
 });
 
-app.use((error,req,next)=>{
-    console.error(error.stack);
+// Error-handling middleware
+app.use((err, req, res, next) => {
+    console.error(err.stack);
     res.status(500).json({
-        success:false,
-        message:'Server Error',
-        error:error.message
-    })
+        success: false,
+        message: 'Server Error',
+        error: err.message
+    });
 });
 
 const PORT = process.env.PORT || 3000;
 
-app.listen(PORT, ()=>{
-    console.log('server running port ${PORT}')
-    
-})
+app.listen(PORT, () => {
+    console.log(`Server running on port ${PORT}`);
+});
