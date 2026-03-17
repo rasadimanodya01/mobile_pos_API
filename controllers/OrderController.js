@@ -57,19 +57,20 @@ const createOrder = async (req,res)=>{
     try{
         const{customer, productDetails}=req.body;
 
-        let totalAomunt =0;
+        let totalAmount =0;
 
         for (let item of productDetails){
-            const product = await Product.findById(item.product);
+            const product = await product.findById(item.product);
 
             if(!product){
                return res.status(404).json({
                 success:false,
-                message:'Product with item ${item.product} not found'
-            }); 
+                message:'Product with id ${item.product} not found'
+                }); 
             }
+        
             if(product.qtyOnHand<item.quantity){
-                return res.status(404).json({
+                return res.status(400).json({
                 success:false,
                 message:'insufficiant quantity for product ${product.description}'
             });
@@ -80,9 +81,9 @@ const createOrder = async (req,res)=>{
             //update product quantity
             product.qtyOnHand-=item.quantity;
             await product.save();
-
+        
         }
-
+        
         const order = await Order.create({
             customer,
             productDetails,
@@ -90,13 +91,13 @@ const createOrder = async (req,res)=>{
             date:req.body.date || Date.now()
         });
 
-        const populateOrder = await Order.findById(order._id)
+        const populatedOrder = await Order.findById(order._id)
         .populate('customer','name address')
         .populate('productDetails.product','description unitPrice')
 
         res.status(201).json({
             success:true,
-            message:populateOrder
+            data:populatedOrder
         });
 
         
@@ -104,9 +105,129 @@ const createOrder = async (req,res)=>{
         
               
     }catch(error){
-        res.status(500).json({
+        res.status(400).json({
             success:false,
             error:error.message
         })
     }
+}
+// @desc update order
+// @route PUT /api/v1/order/:id
+// @access private
+
+const updateOrder = async (req,res)=>{
+    try{
+
+        let order = await Order.findById(req.params.id);
+        if (!order){
+            res.status(404).json({
+                success:false,
+                message:'order not found'
+            });
+        }
+
+        //if updating product details, recalculate stock and total
+        if(req.body.productDetails){
+            for(let item of order.productDetails){
+                const product = await Product.findById(item.product);
+                product.qtyOnHand+=item.quantity;
+                await product.save();
+            }
+            let totalAmount =0;
+            for(let item of req.body.productDetails){
+                const product = await Product.findById(item.product);
+
+                if(!product){
+                return res.status(404).json({
+                success:false,
+                message:'Product with id ${item.product} not found'
+                }); 
+            }
+            if(product.qtyOnHand<item.quantity){
+                return res.status(400).json({
+                success:false,
+                message:'insufficiant quantity for product ${product.description}'
+            });
+            }
+            item.price=product.unitPrice;
+            totalAmount+=product.unitPrice*item.quantity;
+
+            //update product quantity
+            product.qtyOnHand-=item.quantity;
+            await product.save();
+        
+
+        }
+
+        req.body.totalAmount = totalAmount;
+
+    }
+         order = await Order.findByIdAndUpdate(req.params.id,req.body,{new:true,runValidators:true})
+        .populate('customer','name address')
+        .populate('productDetails.product','description unitPrice')
+
+        res.status(201).json({
+            success:true,
+            message:order
+        });
+
+        
+              
+    }catch(error){
+        res.status(400).json({
+            success:false,
+            error:error.message
+        })
+    }
+}
+// @desc delete order
+// @route DELET /api/v1/order/:id
+// @access private
+
+const deleteOrder = async (req,res)=>{
+    try{
+
+        let order = await Order.findById(req.params.id);
+        if (!order){
+            res.status(404).json({
+                success:false,
+                message:'order not found'
+            });
+        }
+
+        //restore product quantities
+        
+            for(let item of order.productDetails){
+                const product = await Product.findById(item.product);
+                if(product){
+                    product.qtyOnHand += item.quantity;
+                    await product.save();
+                }
+                
+            }
+
+            await Order.findByIdAndDelete(req.params.id);
+            
+        res.status(200).json({
+            success:true,
+            data:{},
+            message:'order deleted'
+        });
+
+        
+              
+    }catch(error){
+        res.status(400).json({
+            success:false,
+            error:error.message
+        })
+    }
+}
+
+module.export={
+    getOrders,
+    getOrder,
+    createOrder,
+    updateOrder,
+    deleteOrder
 }
